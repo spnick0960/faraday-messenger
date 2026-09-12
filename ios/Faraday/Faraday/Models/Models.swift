@@ -32,6 +32,24 @@ struct Conversation: Identifiable, Codable, Hashable {
     var contactID: String
     var updatedAt: Date
     var lastPreview: String
+    var unreadCount: Int
+
+    init(id: String, contactID: String, updatedAt: Date, lastPreview: String, unreadCount: Int = 0) {
+        self.id = id
+        self.contactID = contactID
+        self.updatedAt = updatedAt
+        self.lastPreview = lastPreview
+        self.unreadCount = unreadCount
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        contactID = try c.decode(String.self, forKey: .contactID)
+        updatedAt = try c.decode(Date.self, forKey: .updatedAt)
+        lastPreview = try c.decode(String.self, forKey: .lastPreview)
+        unreadCount = try c.decodeIfPresent(Int.self, forKey: .unreadCount) ?? 0
+    }
 }
 
 struct LocalMessage: Identifiable, Codable, Hashable {

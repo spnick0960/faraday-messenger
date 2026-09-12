@@ -34,6 +34,8 @@ struct ThreadView: View {
         .faradayScreen()
         .navigationTitle(contact?.displayName ?? "對話")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear { model.openThread(conversation) }
+        .onDisappear { model.closeThread(conversation) }
     }
 
     private func bubble(_ msg: LocalMessage) -> some View {

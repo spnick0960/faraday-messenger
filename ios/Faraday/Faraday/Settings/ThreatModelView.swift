@@ -25,12 +25,16 @@ struct ThreatModelView: View {
                     body: "採用 Signal 公布的 X3DH 與 Double Ratchet。外層封裝使用 DHKEM(X25519) + HKDF-SHA256 + AES-256-GCM，風格依 RFC 9180 HPKE Base。身分金鑰是由 BIP-39 的 24 詞助記詞衍生的 X25519 + Ed25519。函式庫為 Apple CryptoKit 與系統鑰匙圈。此 MVP 沒有 libsignal 二進位——這是依規格實作，且尚未經過稽核。"
                 )
                 block(
-                    title: "推播通知（未使用）",
-                    body: "這個 MVP 不會連 APNs。未來若加靜音或僅顯示「新訊息」的推播，Apple 仍會知道這台裝置在某個時間點上線並收到 ping，也會洩漏時間資訊。推播絕不可帶明文、寄件者或信箱 ID。帶預覽文字的可見橫幅與本威脅模型不相容。"
+                    title: "本機通知（這台裝置）",
+                    body: "App 還活著、能靠 WebSocket 或 HTTP 輪詢取信時，Faraday 會用 UNUserNotificationCenter 在本機顯示通知。標題是你裝置上已有的聯絡人名稱，內容固定為「你有一則新訊息」。訊息本文、信箱 ID 與密文都不會放進通知，也不會送給 Apple 或中繼站。"
+                )
+                block(
+                    title: "APNs 背景推播（尚未接上）",
+                    body: "App 被系統完全殺掉之後，本機輪詢與 WebSocket 都停了，就不會再跳出通知。真正的背景推播需要 APNs，而且只能是靜音 ping 或同樣的「新訊息」字樣——絕不可帶明文。Apple 仍會知道這台裝置在某個時間點收到 ping。這是刻意還沒做的部分。"
                 )
                 block(
                     title: "刻意不做的事",
-                    body: "推播、電話／電子郵件身分、上傳通訊錄、分析、崩潰回報、群組、附件、語音與個人檔案。"
+                    body: "APNs／遠端推播、電話／電子郵件身分、上傳通訊錄、分析、崩潰回報、群組、附件、語音與個人檔案。"
                 )
                 block(
                     title: "誠實的限制",

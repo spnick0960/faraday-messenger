@@ -12,6 +12,9 @@ final class AppModel {
     var isBusy = false
     var lastError: AppError?
     var pendingPhrase: String?
+    var showNotificationRationale = false
+    /// Set when the user taps a local notification; InboxView consumes it to push the thread.
+    var pendingOpenConversationID: String?
 
     /// Bumped whenever file-backed messages change so thread views re-render immediately.
     private(set) var messageEpoch = 0
@@ -21,6 +24,9 @@ final class AppModel {
     private var sessions: [String: RatchetSession] = [:]
     private var seenEnvelopeIDs = Set<String>()
     private var inboxPollTask: Task<Void, Never>?
+    private var openConversationID: String?
+    private var isSceneActive = true
+    private let notificationDelegate = FaradayNotificationDelegate()
 
     init() {
         let saved = UserDefaults.standard.string(forKey: "relayURL") ?? "http://127.0.0.1:43147"
@@ -35,6 +41,16 @@ final class AppModel {
         contacts = store?.contacts ?? []
         conversations = store?.conversations ?? []
         loadSessions()
+        notificationDelegate.bind(self)
+        LocalNotifier.setBadge(totalUnread)
+    }
+
+    var totalUnread: Int {
+        conversations.reduce(0) { $0 + $1.unreadCount }
+    }
+
+    func isViewing(conversationID: String) -> Bool {
+        isSceneActive && openConversationID == conversationID
     }
 
     var hasIdentity: Bool { identity != nil }
@@ -93,12 +109,64 @@ final class AppModel {
             isOnline = true
             startInboxPolling()
             await refreshInbox(reportError: false)
+            await considerNotificationPermission()
         } catch {
             isOnline = false
             lastError = AppError(message: error.localizedDescription)
             // HTTP register failed — still poll so a later relay recovery is picked up.
             startInboxPolling()
+            await considerNotificationPermission()
         }
+    }
+
+    func considerNotificationPermission() async {
+        guard identity != nil else { return }
+        let explainedKey = "didExplainLocalNotifications"
+        let status = await LocalNotifier.authorizationStatus()
+        if status == .notDetermined, !UserDefaults.standard.bool(forKey: explainedKey) {
+            UserDefaults.standard.set(true, forKey: explainedKey)
+            showNotificationRationale = true
+            return
+        }
+        if status == .notDetermined {
+            await LocalNotifier.requestPermission()
+        }
+    }
+
+    func requestNotificationPermission() async {
+        await LocalNotifier.requestPermission()
+    }
+
+    func setSceneActive(_ active: Bool) {
+        isSceneActive = active
+        if active, let id = openConversationID {
+            clearUnread(conversationID: id)
+        }
+    }
+
+    func openThread(_ conversation: Conversation) {
+        openConversationID = conversation.id
+        clearUnread(conversationID: conversation.id)
+    }
+
+    func closeThread(_ conversation: Conversation) {
+        if openConversationID == conversation.id {
+            openConversationID = nil
+        }
+    }
+
+    func openFromNotification(conversationID: String) {
+        pendingOpenConversationID = conversationID
+        openConversationID = conversationID
+        clearUnread(conversationID: conversationID)
+    }
+
+    func consumePendingOpen() {
+        pendingOpenConversationID = nil
+    }
+
+    func conversation(id: String) -> Conversation? {
+        conversations.first { $0.id == id }
     }
 
     func refreshInbox() async {
@@ -207,6 +275,7 @@ final class AppModel {
     func destroyIdentity() async {
         stopInboxPolling()
         await relay.disconnect()
+        LocalNotifier.clearAll()
         try? KeychainStore.wipeIdentity()
         store?.wipe()
         identity = nil
@@ -215,6 +284,9 @@ final class AppModel {
         sessions = [:]
         seenEnvelopeIDs = []
         pendingPhrase = nil
+        pendingOpenConversationID = nil
+        openConversationID = nil
+        showNotificationRationale = false
     }
 
     private func handle(envelope: InboxEnvelope) async {
@@ -246,7 +318,14 @@ final class AppModel {
                 sentAt: Date(timeIntervalSince1970: TimeInterval(result.payload.ts)),
                 status: .received
             )
-            append(msg)
+            let wasNew = append(msg)
+            if wasNew, !isViewing(conversationID: conversation.id) {
+                incrementUnread(conversationID: conversation.id)
+                LocalNotifier.postNewMessage(
+                    conversationID: conversation.id,
+                    senderName: contact.displayName
+                )
+            }
             // Successful delivery: persist locally first, then delete on the relay.
             try? await relay.ack(mailbox: id.mailboxHex, token: id.authHex, ids: [envelope.id])
         } catch {
@@ -288,21 +367,42 @@ final class AppModel {
             conversations[idx].updatedAt = Date()
             conversations[idx].lastPreview = preview
             conversations.sort { $0.updatedAt > $1.updatedAt }
-            store?.conversations = conversations
+            persistConversationList()
             return conversations[idx]
         }
         let c = Conversation(id: contactID, contactID: contactID, updatedAt: Date(), lastPreview: preview)
         conversations.insert(c, at: 0)
-        store?.conversations = conversations
+        persistConversationList()
         return c
     }
 
-    private func append(_ message: LocalMessage) {
+    @discardableResult
+    private func append(_ message: LocalMessage) -> Bool {
         var list = store?.messages(in: message.conversationID) ?? []
-        if list.contains(where: { $0.id == message.id }) { return }
+        if list.contains(where: { $0.id == message.id }) { return false }
         list.append(message)
         store?.save(messages: list, in: message.conversationID)
         objectNotify()
+        return true
+    }
+
+    private func incrementUnread(conversationID: String) {
+        guard let idx = conversations.firstIndex(where: { $0.id == conversationID }) else { return }
+        conversations[idx].unreadCount += 1
+        persistConversationList()
+    }
+
+    private func clearUnread(conversationID: String) {
+        LocalNotifier.clearThread(conversationID)
+        guard let idx = conversations.firstIndex(where: { $0.id == conversationID }) else { return }
+        guard conversations[idx].unreadCount != 0 else { return }
+        conversations[idx].unreadCount = 0
+        persistConversationList()
+    }
+
+    private func persistConversationList() {
+        store?.conversations = conversations
+        LocalNotifier.setBadge(totalUnread)
     }
 
     private func update(messageID: String, conversationID: String, mutate: (inout LocalMessage) -> Void) {
