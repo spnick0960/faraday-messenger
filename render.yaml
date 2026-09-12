@@ -1,0 +1,14 @@
+# Faraday ephemeral relay on Render.
+# Creates a public HTTPS URL for iOS clients. Ciphertext stays in RAM.
+services:
+  - type: web
+    name: faraday-relay
+    runtime: docker
+    dockerfilePath: ./server/Dockerfile
+    dockerContext: ./server
+    healthCheckPath: /v1/health
+    envVars:
+      - key: FARADAY_WEB
+        value: /app/web
+      - key: FARADAY_DATA
+        value: /tmp/faraday-mailboxes.json

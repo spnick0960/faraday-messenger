@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="referrer" content="no-referrer" />
+  <title>Faraday relay — what this server can see</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header>
+    <p class="eyebrow">Faraday relay · v1</p>
+    <h1>This process cannot read your messages.</h1>
+    <p class="lede">
+      Faraday is an iOS messenger. This page is the operator view of the local
+      ephemeral relay — the only backend in the MVP. Sealed blobs sit in RAM
+      until the recipient device fetches them, then they are deleted. They are
+      never written to disk. After 48 hours uncollected, they are discarded.
+      This process has no decryption keys, display names, recovery phrases, or
+      message bodies.
+    </p>
+  </header>
+
+  <section class="stats" id="stats">
+    <article><span class="n" id="mailboxes">—</span><span>mailboxes</span></article>
+    <article><span class="n" id="pending">—</span><span>pending in RAM</span></article>
+    <article><span class="n" id="ondisk">0</span><span>ciphertext on disk</span></article>
+    <article><span class="n" id="ttl">48</span><span>hour offline TTL</span></article>
+  </section>
+
+  <p class="hint" id="retention"></p>
+
+  <section class="split">
+    <article>
+      <h2>What this server <em>can</em> see</h2>
+      <ul id="can"></ul>
+    </article>
+    <article>
+      <h2>What this server <em>cannot</em> see</h2>
+      <ul id="cannot"></ul>
+    </article>
+  </section>
+
+  <section>
+    <h2>Live envelope feed</h2>
+    <p class="hint">
+      Truncated mailbox suffixes and ciphertext prefixes only — and only while a
+      blob is still waiting. After ack, the row’s payload is gone.
+      Run <code>go run ./cmd/sim</code> from <code>server/</code> to watch two devices
+      exchange sealed messages through this process.
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>when</th>
+            <th>event</th>
+            <th>bytes</th>
+            <th>dest</th>
+            <th>blob head (hex)</th>
+          </tr>
+        </thead>
+        <tbody id="events">
+          <tr><td colspan="5" class="empty">No envelopes yet. The store is empty — which is the happy path.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Talk to it from iOS</h2>
+    <ol class="steps">
+      <li>Open <code>ios/Faraday/Faraday.xcodeproj</code> on a Mac.</li>
+      <li>Run two simulators. Create an identity on each — no phone number.</li>
+      <li>Set the relay URL in Settings to <code id="relay-url"></code></li>
+      <li>Copy an invite from one device, paste it on the other, send a text.</li>
+    </ol>
+    <p class="hint">
+      Physical devices: point the relay URL at this machine’s LAN address and bind
+      the server with <code>FARADAY_ADDR=0.0.0.0:43147</code>.
+    </p>
+  </section>
+
+  <footer>
+    No analytics, no third-party scripts, no cookies. This page is served from the
+    same process as the relay and phones home nowhere.
+  </footer>
+  <script src="/app.js"></script>
+</body>
+</html>

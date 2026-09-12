@@ -1,0 +1,5 @@
+data/
+*.exe
+**/*_test.go
+.git
+.dockerignore

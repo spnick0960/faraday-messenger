@@ -1,0 +1,394 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+		C5BA2F1BDDF9000888BF07C4 /* Faraday.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Faraday.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		6C36FFE920F24CEDB7CFDBFC /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		68E77A9D7BC78A97D4F4E27B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		3A837EB614FCCE104CAC89BE /* FaradayApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaradayApp.swift; sourceTree = "<group>"; };
+		534405F12F47E3F5F8CBF1A1 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		00B9F20C75E8F63554333F9A /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		26C74858960EEB3F1C7C47B6 /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
+		FB50B4A17BA7DE1F5D0682C3 /* RecoveryPhraseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryPhraseView.swift; sourceTree = "<group>"; };
+		C7CFE0B5D2FC6454F617610E /* InboxView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboxView.swift; sourceTree = "<group>"; };
+		6074EC6F102ACC7696760B0B /* ThreadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThreadView.swift; sourceTree = "<group>"; };
+		B7D9CA1608976AF305D378A2 /* MyInviteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyInviteView.swift; sourceTree = "<group>"; };
+		8F0AB884B37E051647430F4D /* AddContactView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddContactView.swift; sourceTree = "<group>"; };
+		0A5F06B606E3500CB4109806 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		F9EE022B8D48337A22EDD8B2 /* ThreatModelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThreatModelView.swift; sourceTree = "<group>"; };
+		76F72362990B6B953B934F3C /* HKDF.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HKDF.swift; sourceTree = "<group>"; };
+		09DB4D4F4E03C4A18CD6EAF1 /* BIP39.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BIP39.swift; sourceTree = "<group>"; };
+		292E1ECB09144F88B87676BD /* IdentityKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdentityKeys.swift; sourceTree = "<group>"; };
+		51C8BD3301DEC26BDEE70EF3 /* X3DH.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = X3DH.swift; sourceTree = "<group>"; };
+		7AC791306B2FBC73298E293A /* DoubleRatchet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoubleRatchet.swift; sourceTree = "<group>"; };
+		95E4B33C4CA7606C71967964 /* Seal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Seal.swift; sourceTree = "<group>"; };
+		FAD3A3B93993AC1765648C13 /* Invite.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Invite.swift; sourceTree = "<group>"; };
+		0974CA7FB40752E44A34AF05 /* DeviceCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceCrypto.swift; sourceTree = "<group>"; };
+		BF18F8B395F7E44F899E9B48 /* RelayClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelayClient.swift; sourceTree = "<group>"; };
+		05B6D3646630F6B161EDD24F /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
+		C12ED4B3CA5560747662C7C9 /* LocalStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalStore.swift; sourceTree = "<group>"; };
+		8700F319C1B6D8F960813441 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		88B1BAA0EBFA1B3026DA017B /* bip39-english.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = bip39-english.txt; sourceTree = "<group>"; };
+		6327A1005FF0B783151E530B /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		DCD758DD8D3026123A898966 /* FaradayApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A837EB614FCCE104CAC89BE /* FaradayApp.swift */; };
+		F6B5F45FFF55524ACEAAED39 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 534405F12F47E3F5F8CBF1A1 /* AppModel.swift */; };
+		7226710CB4DFD423B1B805BE /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00B9F20C75E8F63554333F9A /* Theme.swift */; };
+		EFFBDE8E6A4BACF73CD0AEFD /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26C74858960EEB3F1C7C47B6 /* WelcomeView.swift */; };
+		C10B79FA0D6CC3DE8C620992 /* RecoveryPhraseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB50B4A17BA7DE1F5D0682C3 /* RecoveryPhraseView.swift */; };
+		3935D29B5D269CDE1D94D516 /* InboxView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7CFE0B5D2FC6454F617610E /* InboxView.swift */; };
+		C050017D100D7E6C00450A96 /* ThreadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6074EC6F102ACC7696760B0B /* ThreadView.swift */; };
+		0FFEEDA31A3B67D5831FF870 /* MyInviteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7D9CA1608976AF305D378A2 /* MyInviteView.swift */; };
+		1F3DBE5257CB9BD0BC11F16E /* AddContactView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F0AB884B37E051647430F4D /* AddContactView.swift */; };
+		4FEF6AE4CF8DE66FA385EAAC /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A5F06B606E3500CB4109806 /* SettingsView.swift */; };
+		EB1E86CB185ECAFA69451A36 /* ThreatModelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9EE022B8D48337A22EDD8B2 /* ThreatModelView.swift */; };
+		590868834D172FBA949CE0D7 /* HKDF.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76F72362990B6B953B934F3C /* HKDF.swift */; };
+		CC5C4C72A91A1525EDFD07BB /* BIP39.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09DB4D4F4E03C4A18CD6EAF1 /* BIP39.swift */; };
+		E02C6D148DAD908EB57E5ED3 /* IdentityKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 292E1ECB09144F88B87676BD /* IdentityKeys.swift */; };
+		8512CAE6F1E62EFFC1812917 /* X3DH.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51C8BD3301DEC26BDEE70EF3 /* X3DH.swift */; };
+		D5E7E79806CE3184C9561A1E /* DoubleRatchet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AC791306B2FBC73298E293A /* DoubleRatchet.swift */; };
+		BAB0B90788CFB647409B8893 /* Seal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95E4B33C4CA7606C71967964 /* Seal.swift */; };
+		158EF54ED308CFB797A29308 /* Invite.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAD3A3B93993AC1765648C13 /* Invite.swift */; };
+		ED080E5EA3D7C0B49562F060 /* DeviceCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0974CA7FB40752E44A34AF05 /* DeviceCrypto.swift */; };
+		BAEFB1023262C5E3F143255B /* RelayClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF18F8B395F7E44F899E9B48 /* RelayClient.swift */; };
+		3D74F8C15520FB42D23B63D4 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05B6D3646630F6B161EDD24F /* KeychainStore.swift */; };
+		EB797426E99984DB217FE84B /* LocalStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C12ED4B3CA5560747662C7C9 /* LocalStore.swift */; };
+		F6D729337968BBF443672028 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8700F319C1B6D8F960813441 /* Models.swift */; };
+		226DC2BD11B37244853061DE /* bip39-english.txt in Resources */ = {isa = PBXBuildFile; fileRef = 88B1BAA0EBFA1B3026DA017B /* bip39-english.txt */; };
+		FC0CB21E6ADF24E540AC513C /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 6327A1005FF0B783151E530B /* PrivacyInfo.xcprivacy */; };
+		222F0DBFFE5EB23DCD3FD16F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6C36FFE920F24CEDB7CFDBFC /* Assets.xcassets */; };
+		EDA6D6223944636B9C5B54AA /*  */ = {
+			isa = PBXGroup;
+			children = (
+				8C802889BA4E6683F9289480 /* Faraday */,
+				FBDC4F23F93125BBEEAE800C /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		FBDC4F23F93125BBEEAE800C /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				C5BA2F1BDDF9000888BF07C4 /* Faraday.app */,
+			);
+			sourceTree = "<group>";
+		};
+		8C802889BA4E6683F9289480 /* Faraday */ = {
+			isa = PBXGroup;
+			children = (
+				3A837EB614FCCE104CAC89BE /* FaradayApp.swift */,
+				534405F12F47E3F5F8CBF1A1 /* AppModel.swift */,
+				63ACC02190B5367E87C9D10A /* Chats */,
+				2B7ADC5CD65787AA187C17A3 /* Contacts */,
+				8BC1C8391BA575A60D7C32B9 /* Crypto */,
+				01DF8015EE6D9F0C332DD0E1 /* Models */,
+				CF179D01BF1A14B84657D41C /* Network */,
+				AD8A628522E7F9C2F977C29D /* Onboarding */,
+				402205402FBC96DCF78AA329 /* Resources */,
+				6EC4888C2BA85D755C946C0B /* Settings */,
+				63B17DC8029428534662A6FB /* Storage */,
+				3D5B0CC5F139D103A5EAEC35 /* Theme */,
+				6C36FFE920F24CEDB7CFDBFC /* Assets.xcassets */,
+				68E77A9D7BC78A97D4F4E27B /* Info.plist */,
+			);
+			path = Faraday;
+			sourceTree = "<group>";
+		};
+		3D5B0CC5F139D103A5EAEC35 /* Theme */ = {
+			isa = PBXGroup;
+			children = (
+				00B9F20C75E8F63554333F9A /* Theme.swift */,
+			);
+			path = Theme;
+			sourceTree = "<group>";
+		};
+		AD8A628522E7F9C2F977C29D /* Onboarding */ = {
+			isa = PBXGroup;
+			children = (
+				26C74858960EEB3F1C7C47B6 /* WelcomeView.swift */,
+				FB50B4A17BA7DE1F5D0682C3 /* RecoveryPhraseView.swift */,
+			);
+			path = Onboarding;
+			sourceTree = "<group>";
+		};
+		63ACC02190B5367E87C9D10A /* Chats */ = {
+			isa = PBXGroup;
+			children = (
+				C7CFE0B5D2FC6454F617610E /* InboxView.swift */,
+				6074EC6F102ACC7696760B0B /* ThreadView.swift */,
+			);
+			path = Chats;
+			sourceTree = "<group>";
+		};
+		2B7ADC5CD65787AA187C17A3 /* Contacts */ = {
+			isa = PBXGroup;
+			children = (
+				B7D9CA1608976AF305D378A2 /* MyInviteView.swift */,
+				8F0AB884B37E051647430F4D /* AddContactView.swift */,
+			);
+			path = Contacts;
+			sourceTree = "<group>";
+		};
+		6EC4888C2BA85D755C946C0B /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				0A5F06B606E3500CB4109806 /* SettingsView.swift */,
+				F9EE022B8D48337A22EDD8B2 /* ThreatModelView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		8BC1C8391BA575A60D7C32B9 /* Crypto */ = {
+			isa = PBXGroup;
+			children = (
+				76F72362990B6B953B934F3C /* HKDF.swift */,
+				09DB4D4F4E03C4A18CD6EAF1 /* BIP39.swift */,
+				292E1ECB09144F88B87676BD /* IdentityKeys.swift */,
+				51C8BD3301DEC26BDEE70EF3 /* X3DH.swift */,
+				7AC791306B2FBC73298E293A /* DoubleRatchet.swift */,
+				95E4B33C4CA7606C71967964 /* Seal.swift */,
+				FAD3A3B93993AC1765648C13 /* Invite.swift */,
+				0974CA7FB40752E44A34AF05 /* DeviceCrypto.swift */,
+			);
+			path = Crypto;
+			sourceTree = "<group>";
+		};
+		CF179D01BF1A14B84657D41C /* Network */ = {
+			isa = PBXGroup;
+			children = (
+				BF18F8B395F7E44F899E9B48 /* RelayClient.swift */,
+			);
+			path = Network;
+			sourceTree = "<group>";
+		};
+		63B17DC8029428534662A6FB /* Storage */ = {
+			isa = PBXGroup;
+			children = (
+				05B6D3646630F6B161EDD24F /* KeychainStore.swift */,
+				C12ED4B3CA5560747662C7C9 /* LocalStore.swift */,
+			);
+			path = Storage;
+			sourceTree = "<group>";
+		};
+		01DF8015EE6D9F0C332DD0E1 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				8700F319C1B6D8F960813441 /* Models.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		402205402FBC96DCF78AA329 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				88B1BAA0EBFA1B3026DA017B /* bip39-english.txt */,
+				6327A1005FF0B783151E530B /* PrivacyInfo.xcprivacy */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		0E8A3AD980EC179856012B7E /* Faraday */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DAA83BDF5B0799BDA8357B02 /* Build configuration list for PBXNativeTarget "Faraday" */;
+			buildPhases = (
+				BCE16DD0260827ECF338C787 /* Sources */,
+				7561BFB015D8F536760CB671 /* Frameworks */,
+				0189424A5A60FED329FA868E /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Faraday;
+			productName = Faraday;
+			productReference = C5BA2F1BDDF9000888BF07C4 /* Faraday.app */;
+			productType = "com.apple.product-type.application";
+		};
+		98F54143AB4E86B28C3AFEE0 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					0E8A3AD980EC179856012B7E = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = 3C82405777B1091E05898B54 /* Build configuration list for PBXProject "Faraday" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = EDA6D6223944636B9C5B54AA;
+			productRefGroup = FBDC4F23F93125BBEEAE800C /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				0E8A3AD980EC179856012B7E /* Faraday */,
+			);
+		};
+		BCE16DD0260827ECF338C787 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DCD758DD8D3026123A898966 /* FaradayApp.swift in Sources */,
+				F6B5F45FFF55524ACEAAED39 /* AppModel.swift in Sources */,
+				7226710CB4DFD423B1B805BE /* Theme.swift in Sources */,
+				EFFBDE8E6A4BACF73CD0AEFD /* WelcomeView.swift in Sources */,
+				C10B79FA0D6CC3DE8C620992 /* RecoveryPhraseView.swift in Sources */,
+				3935D29B5D269CDE1D94D516 /* InboxView.swift in Sources */,
+				C050017D100D7E6C00450A96 /* ThreadView.swift in Sources */,
+				0FFEEDA31A3B67D5831FF870 /* MyInviteView.swift in Sources */,
+				1F3DBE5257CB9BD0BC11F16E /* AddContactView.swift in Sources */,
+				4FEF6AE4CF8DE66FA385EAAC /* SettingsView.swift in Sources */,
+				EB1E86CB185ECAFA69451A36 /* ThreatModelView.swift in Sources */,
+				590868834D172FBA949CE0D7 /* HKDF.swift in Sources */,
+				CC5C4C72A91A1525EDFD07BB /* BIP39.swift in Sources */,
+				E02C6D148DAD908EB57E5ED3 /* IdentityKeys.swift in Sources */,
+				8512CAE6F1E62EFFC1812917 /* X3DH.swift in Sources */,
+				D5E7E79806CE3184C9561A1E /* DoubleRatchet.swift in Sources */,
+				BAB0B90788CFB647409B8893 /* Seal.swift in Sources */,
+				158EF54ED308CFB797A29308 /* Invite.swift in Sources */,
+				ED080E5EA3D7C0B49562F060 /* DeviceCrypto.swift in Sources */,
+				BAEFB1023262C5E3F143255B /* RelayClient.swift in Sources */,
+				3D74F8C15520FB42D23B63D4 /* KeychainStore.swift in Sources */,
+				EB797426E99984DB217FE84B /* LocalStore.swift in Sources */,
+				F6D729337968BBF443672028 /* Models.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		0189424A5A60FED329FA868E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				226DC2BD11B37244853061DE /* bip39-english.txt in Resources */,
+				FC0CB21E6ADF24E540AC513C /* PrivacyInfo.xcprivacy in Resources */,
+				222F0DBFFE5EB23DCD3FD16F /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7561BFB015D8F536760CB671 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8403DEFC848181E9BE4C9764 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		5FECB3CB406BD8F64CE89A93 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+			};
+			name = Release;
+		};
+		57780E5B888E69640CCE1D8C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Faraday/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.faraday.messenger;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = targeted;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		C39FAEB1B9333673E01AB91E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Faraday/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.faraday.messenger;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = targeted;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+};
+			name = Release;
+		};
+		3C82405777B1091E05898B54 /* Build configuration list for PBXProject "Faraday" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8403DEFC848181E9BE4C9764 /* Debug */,
+				5FECB3CB406BD8F64CE89A93 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		DAA83BDF5B0799BDA8357B02 /* Build configuration list for PBXNativeTarget "Faraday" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				57780E5B888E69640CCE1D8C /* Debug */,
+				C39FAEB1B9333673E01AB91E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+	};
+	rootObject = 98F54143AB4E86B28C3AFEE0 /* Project object */;
+}

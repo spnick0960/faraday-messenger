@@ -1,0 +1,11 @@
+.DS_Store
+xcuserdata/
+DerivedData/
+*.xcuserstate
+.swiftpm/
+server/data/
+*.tmp
+.idea/
+.env
+__pycache__/
+*.exe
