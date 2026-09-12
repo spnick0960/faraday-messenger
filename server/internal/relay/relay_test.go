@@ -123,6 +123,82 @@ func TestTwoDevicesThroughRelay(t *testing.T) {
 	}
 }
 
+// HTTP inbox fetch is the iOS client's fallback when the WebSocket is down.
+// A drop must be visible on the next GET /v1/inbox without any WS subscriber.
+func TestInboxHTTPPollWithoutWebsocket(t *testing.T) {
+	st, err := store.Open("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := httptest.NewServer(New(st, "").Handler())
+	defer srv.Close()
+
+	alice, _ := fcrypto.GenerateIdentity("Alice")
+	bob, _ := fcrypto.GenerateIdentity("Bob")
+	ac := NewClient(srv.URL)
+	bc := NewClient(srv.URL)
+	if err := ac.Register(alice.MailboxHex(), alice.AuthHex()); err != nil {
+		t.Fatal(err)
+	}
+	if err := bc.Register(bob.MailboxHex(), bob.AuthHex()); err != nil {
+		t.Fatal(err)
+	}
+
+	empty, err := bc.Inbox()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(empty) != 0 {
+		t.Fatalf("expected empty inbox, got %d", len(empty))
+	}
+
+	const body = "poll-path-only"
+	blob, _, _, err := fcrypto.EncryptTo(alice, bob.PublicBundle(), nil, body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ac.Drop(bob.MailboxHex(), blob); err != nil {
+		t.Fatal(err)
+	}
+
+	// First poll after drop — same GET the iOS 1.5s loop uses.
+	items, err := bc.Inbox()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(items) != 1 {
+		t.Fatalf("poll after drop: %d", len(items))
+	}
+	enc, err := DecodeBlob(items[0].Blob)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, _, _, err := fcrypto.DecryptFrom(bob, map[string]*fcrypto.Session{}, enc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Body != body {
+		t.Fatalf("decrypted %q", got.Body)
+	}
+	if bytes.Contains(enc, []byte(body)) {
+		t.Fatal("plaintext present in relay blob")
+	}
+	if err := bc.Ack([]string{items[0].ID}); err != nil {
+		t.Fatal(err)
+	}
+
+	cleared, err := bc.Inbox()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cleared) != 0 {
+		t.Fatalf("inbox after ack %d", len(cleared))
+	}
+	if st.Transparency().PendingEnvelopes != 0 || st.Transparency().PlaintextBodies != 0 {
+		t.Fatal("relay still holding envelope or plaintext after ack")
+	}
+}
+
 func TestDropDoesNotRequireSenderAuth(t *testing.T) {
 	st, _ := store.Open("")
 	srv := httptest.NewServer(New(st, "").Handler())
