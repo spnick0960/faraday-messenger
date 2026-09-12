@@ -148,6 +148,87 @@ func TestDoubleRatchetConversation(t *testing.T) {
 	}
 }
 
+func TestReadReceiptRoundTrip(t *testing.T) {
+	alice, _ := GenerateIdentity("Alice")
+	bob, _ := GenerateIdentity("Bob")
+	blob, sessA, txt, err := EncryptTo(alice, bob.PublicBundle(), nil, "please read me")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, _, sessB, err := DecryptFrom(bob, map[string]*Session{}, blob)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.T != "txt" || got.ID != txt.ID {
+		t.Fatalf("txt %+v", got)
+	}
+	receiptBlob, _, rec, err := EncryptReadReceipt(bob, alice.PublicBundle(), sessB, txt.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rec.T != "read" || rec.Upto != txt.ID || rec.Body != "" {
+		t.Fatalf("receipt %+v", rec)
+	}
+	if bytes.Contains(receiptBlob, []byte(txt.ID)) || bytes.Contains(receiptBlob, []byte("read")) || bytes.Contains(receiptBlob, []byte("please read me")) {
+		t.Fatal("read receipt leaked into sealed blob")
+	}
+	sessionsA := map[string]*Session{hexKey(bob.IKX.PublicKey().Bytes()): sessA}
+	got, _, _, err = DecryptFrom(alice, sessionsA, receiptBlob)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.T != "read" || got.Upto != txt.ID {
+		t.Fatalf("decrypted receipt %+v", got)
+	}
+	if _, _, _, err := EncryptReadReceipt(alice, bob.PublicBundle(), nil, txt.ID); err == nil {
+		t.Fatal("receipt without session should fail")
+	}
+}
+
+func TestSessionHealAfterStaleRatchet(t *testing.T) {
+	alice, _ := GenerateIdentity("Alice")
+	bob, _ := GenerateIdentity("Bob")
+	blob, _, _, err := EncryptTo(alice, bob.PublicBundle(), nil, "first")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, peer, staleB, err := DecryptFrom(bob, map[string]*Session{}, blob)
+	if err != nil || got.Body != "first" || peer == nil {
+		t.Fatalf("%v %+v", err, got)
+	}
+
+	// Alice drops her ratchet (reinstall) and starts a new X3DH using Bob's stored bundle.
+	heal, _, p2, err := EncryptTo(alice, bob.PublicBundle(), nil, "healed")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p2.Card == nil {
+		t.Fatal("heal message must be a prekey with card")
+	}
+	if bytes.Contains(heal, []byte("healed")) {
+		t.Fatal("plaintext leaked into heal blob")
+	}
+
+	// Bob still has the stale session. A new prekey must replace it.
+	staleMap := map[string]*Session{hexKey(alice.IKX.PublicKey().Bytes()): staleB}
+	got, _, sessB, err := DecryptFrom(bob, staleMap, heal)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Body != "healed" {
+		t.Fatalf("got %q", got.Body)
+	}
+
+	// Reply path works on the new session without re-adding Alice.
+	reply, _, _, err := EncryptTo(bob, alice.PublicBundle(), sessB, "ack-heal")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(reply, []byte("ack-heal")) {
+		t.Fatal("reply plaintext leaked")
+	}
+}
+
 func TestSealHidesSender(t *testing.T) {
 	alice, _ := GenerateIdentity("Alice")
 	bob, _ := GenerateIdentity("Bob")

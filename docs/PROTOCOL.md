@@ -59,7 +59,25 @@ DoubleRatchet header (dh_pub || pn || n)
 AES-256-GCM(padded JSON payload)
 ```
 
-The JSON payload is `{v,t,id,ts,body,card?}`. First messages include a `card` so the recipient can reply without a second QR scan.
+The JSON payload is `{v,t,id,ts,body,card?,upto?}`. First `txt` messages include a `card` so the recipient can reply without a second QR scan.
+
+| `t` | Meaning | Fields | UI |
+| --- | --- | --- | --- |
+| `txt` | 1:1 chat text | `body` is the message | shown as a bubble |
+| `read` | 1:1 read receipt | `body` is empty; `upto` is the last **peer** message id the sender has displayed | never a chat row; advances the peer’s local read watermark |
+
+A `read` payload travels on the same Double Ratchet + sealed envelope as `txt`. The relay sees another opaque blob (size / dest mailbox / time only). Receipts are not sent until a session already exists. This MVP is 1:1 only; group read state is a follow-up.
+
+## Session reset (1:1 auto-heal)
+
+If a sealed blob cannot be opened with the current Double Ratchet state (reinstall, desync, leftover RAM after a relay flush):
+
+1. The device **acks** the envelope so it cannot jam `GET /v1/inbox`.
+2. It deletes the local session for that sender (when `sender_ikx` is readable after the outer seal). Old ciphertext is unrecoverable.
+3. The next **outbound** `txt` to that contact is a new X3DH prekey using the **stored** invite bundle — the peer does not paste an invite again.
+4. A recipient that still has a stale session accepts a new prekey from the same `sender_ikx` and replaces the ratchet.
+
+The relay still sees only another opaque blob. Contacts and history on disk are not deleted.
 
 Plaintext is padded to 64 / 128 / 256 / 512 / 1024 / 2048 / 4096 / 8192 bytes before AEAD.
 

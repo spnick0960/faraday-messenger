@@ -55,11 +55,15 @@ If the recipient never opens Faraday within 48 hours, the sealed blob is permane
 
 The on-disk file (`data/relay.json`) stores mailbox capability IDs and token hashes so a restart can still authenticate devices. It does **not** store envelopes. An older build that wrote blobs into that file is stripped on startup.
 
-### Push / APNs (not used in this MVP)
+### Local notifications vs APNs
 
-This build does not register with Apple Push Notification service. Delivery is WebSocket + inbox fetch while the app is in the foreground.
+While the process is alive, Faraday can receive via WebSocket (reconnects after a drop) plus HTTP inbox polling every ~1.5s. A new message for a conversation you are **not** looking at posts a **local** `UNUserNotificationCenter` banner on this device only:
 
-If push is added later, the only acceptable payload is a silent data-only ping or a generic “New message” with **no** body, sender, mailbox, or ciphertext. Apple would still learn that this device received a notification at time T — that timing metadata is a real tradeoff and is why push is off by default. Preview text in a banner is incompatible with the threat model.
+- Title: the contact display name already stored on the device
+- Body: the fixed line `你有一則新訊息` — **never** the message plaintext
+- No APNs, no Firebase, no payload sent to any push server
+
+**Still missing (killed-app push):** if iOS suspends or kills Faraday, polling and the socket stop. Sealed blobs wait in relay RAM for up to 48 hours. Waking a killed app needs APNs. The only acceptable APNs payload later is a silent data-only ping or the same generic “new message” line — no body, mailbox, or ciphertext. Apple would still learn that this device got a ping at time T. That is why APNs is still off.
 
 ## Cryptography (auditable, not invented)
 
@@ -147,13 +151,14 @@ Simulator QR scanning is not available; paste the invite. A real device can scan
 
 ## Known limitations (intentionally documented)
 
-- **No push notifications.** See the APNs note above. A future silent ping would still leak “this device got mail at T” to Apple.
-- **Restore does not bring back history.** The phrase restores keys and mailbox. Ratchet sessions and local messages stay on the old device. Previous contacts may need to invite you again.
+- **No APNs / killed-app push.** Local banners work while Faraday can still poll or hold a WebSocket. See the APNs note above. A future silent ping would still leak “this device got mail at T” to Apple.
+- **Restore does not bring back history.** The phrase restores keys and mailbox. Ratchet sessions and local messages stay on the old device. If this device still has the contact’s invite bundle, send one new message to start a fresh X3DH — no second paste. Undecryptable leftover blobs are acked and dropped.
 - **No post-quantum.** Classic X3DH, not PQXDH.
 - **Metadata remains.** IPs, times, padded sizes, mailbox IDs. Sealed sender hides *who* wrote to a mailbox, not *that* the mailbox received mail.
 - **Invite is a capability.** Treat it like a secret.
 - **Unaudited implementation** of the Signal specs. Do not use this build for high-risk threat models without review.
 - **No attachments.** Text only.
+- **1:1 read receipts only.** Opening a thread seals a `t: "read"` payload (`upto` = last peer message id). Group receipts are a follow-up. The relay sees another opaque blob.
 - **Background iOS networking is unreliable** without push. If the app is suspended, a sealed blob waits in RAM for up to 48 hours. After that it is gone, even if the recipient later comes online.
 
 ## Privacy defaults

@@ -18,12 +18,21 @@ actor RelayClient {
     var baseURL: URL
     private var socket: URLSessionWebSocketTask?
     private var session = URLSession(configuration: .ephemeral)
+    /// Bumped on every new socket or an explicit disconnect so stale receive loops cannot reconnect.
+    private var connectionGeneration = 0
+    private var reconnectTask: Task<Void, Never>?
+    private var pingTask: Task<Void, Never>?
+    private var reconnectDelayNs: UInt64 = 500_000_000
+    private var activeMailbox: String?
+    private var activeToken: String?
+    private var deliverHandler: (@Sendable (InboxEnvelope) -> Void)?
 
     init(baseURL: URL) {
         self.baseURL = baseURL
     }
 
     func setBase(_ url: URL) {
+        disconnect()
         baseURL = url
     }
 
@@ -76,6 +85,34 @@ actor RelayClient {
 
     func connect(mailbox: String, token: String, onDeliver: @escaping @Sendable (InboxEnvelope) -> Void) async {
         disconnect()
+        activeMailbox = mailbox
+        activeToken = token
+        deliverHandler = onDeliver
+        await openSocket()
+    }
+
+    func disconnect() {
+        connectionGeneration += 1
+        reconnectTask?.cancel()
+        reconnectTask = nil
+        pingTask?.cancel()
+        pingTask = nil
+        reconnectDelayNs = 500_000_000
+        socket?.cancel(with: .goingAway, reason: nil)
+        socket = nil
+        activeMailbox = nil
+        activeToken = nil
+        deliverHandler = nil
+    }
+
+    private func openSocket() async {
+        guard let mailbox = activeMailbox, let token = activeToken, let onDeliver = deliverHandler else { return }
+        connectionGeneration += 1
+        let generation = connectionGeneration
+        pingTask?.cancel()
+        pingTask = nil
+        socket?.cancel(with: .goingAway, reason: nil)
+
         var components = URLComponents(url: baseURL.appending(path: "/v1/ws"), resolvingAgainstBaseURL: false)
         if components?.scheme == "http" { components?.scheme = "ws" }
         if components?.scheme == "https" { components?.scheme = "wss" }
@@ -86,16 +123,61 @@ actor RelayClient {
         let hello: [String: Any] = ["v": 1, "op": "auth", "mailbox": mailbox, "token": token]
         guard let data = try? JSONSerialization.data(withJSONObject: hello),
               let text = String(data: data, encoding: .utf8) else { return }
-        try? await task.send(.string(text))
-        receiveLoop(task: task, onDeliver: onDeliver)
+        do {
+            try await task.send(.string(text))
+        } catch {
+            socket = nil
+            scheduleReconnect(failedGeneration: generation)
+            return
+        }
+        reconnectDelayNs = 500_000_000
+        startPing(task: task, generation: generation)
+        receiveLoop(task: task, generation: generation, onDeliver: onDeliver)
     }
 
-    func disconnect() {
+    private func startPing(task: URLSessionWebSocketTask, generation: Int) {
+        pingTask?.cancel()
+        pingTask = Task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(20))
+                guard !Task.isCancelled, generation == connectionGeneration else { return }
+                do {
+                    try await task.send(.string(#"{"v":1,"op":"ping"}"#))
+                } catch {
+                    await handleSocketFailure(generation: generation)
+                    return
+                }
+            }
+        }
+    }
+
+    private func handleSocketFailure(generation: Int) {
+        guard generation == connectionGeneration else { return }
+        guard socket != nil else { return }
+        pingTask?.cancel()
+        pingTask = nil
         socket?.cancel(with: .goingAway, reason: nil)
         socket = nil
+        scheduleReconnect(failedGeneration: generation)
     }
 
-    nonisolated private func receiveLoop(task: URLSessionWebSocketTask, onDeliver: @escaping @Sendable (InboxEnvelope) -> Void) {
+    private func scheduleReconnect(failedGeneration: Int) {
+        guard failedGeneration == connectionGeneration, activeMailbox != nil else { return }
+        reconnectTask?.cancel()
+        let delay = reconnectDelayNs
+        reconnectDelayNs = min(reconnectDelayNs * 2, 8_000_000_000)
+        reconnectTask = Task {
+            try? await Task.sleep(nanoseconds: delay)
+            guard !Task.isCancelled, failedGeneration == connectionGeneration else { return }
+            await openSocket()
+        }
+    }
+
+    nonisolated private func receiveLoop(
+        task: URLSessionWebSocketTask,
+        generation: Int,
+        onDeliver: @escaping @Sendable (InboxEnvelope) -> Void
+    ) {
         task.receive { result in
             switch result {
             case .success(.string(let text)):
@@ -107,11 +189,11 @@ actor RelayClient {
                     let env = InboxEnvelope(id: id, blob: blob, bytes: obj["bytes"] as? Int ?? 0, at: obj["at"] as? Int64 ?? 0)
                     onDeliver(env)
                 }
-                self.receiveLoop(task: task, onDeliver: onDeliver)
+                self.receiveLoop(task: task, generation: generation, onDeliver: onDeliver)
             case .success:
-                self.receiveLoop(task: task, onDeliver: onDeliver)
+                self.receiveLoop(task: task, generation: generation, onDeliver: onDeliver)
             case .failure:
-                break
+                Task { await self.handleSocketFailure(generation: generation) }
             }
         }
     }

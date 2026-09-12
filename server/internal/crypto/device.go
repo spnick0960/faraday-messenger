@@ -17,6 +17,7 @@ type ChatPayload struct {
 	TS   int64  `json:"ts"`
 	Body string `json:"body"`
 	Card *Card  `json:"card,omitempty"`
+	Upto string `json:"upto,omitempty"`
 }
 
 type Card struct {
@@ -78,6 +79,33 @@ func EncryptTo(self *Identity, peer *PublicBundle, session *Session, body string
 	if prekey {
 		payload.Card = self.Card()
 	}
+	return sealPayload(self, peer, session, prekey, payload)
+}
+
+// EncryptReadReceipt seals a t=read control payload. Requires an existing session.
+func EncryptReadReceipt(self *Identity, peer *PublicBundle, session *Session, upto string) ([]byte, *Session, *ChatPayload, error) {
+	if session == nil {
+		return nil, nil, nil, fmt.Errorf("read receipt requires a session")
+	}
+	if err := peer.Verify(); err != nil {
+		return nil, nil, nil, err
+	}
+	idBytes := make([]byte, 16)
+	if _, err := rand.Read(idBytes); err != nil {
+		return nil, nil, nil, err
+	}
+	payload := &ChatPayload{
+		V:    1,
+		T:    "read",
+		ID:   fmt.Sprintf("%x", idBytes),
+		TS:   time.Now().Unix(),
+		Body: "",
+		Upto: upto,
+	}
+	return sealPayload(self, peer, session, false, payload)
+}
+
+func sealPayload(self *Identity, peer *PublicBundle, session *Session, prekey bool, payload *ChatPayload) ([]byte, *Session, *ChatPayload, error) {
 	pt, err := json.Marshal(payload)
 	if err != nil {
 		return nil, nil, nil, err
@@ -86,10 +114,9 @@ func EncryptTo(self *Identity, peer *PublicBundle, session *Session, body string
 	if err != nil {
 		return nil, nil, nil, err
 	}
-
 	inner := encodeInner(self, session, prekey, hdr, ct)
 	aad := append([]byte(InfoSeal), peer.Mailbox[:]...)
-	blob, err = SealTo(peer.IKX, aad, inner)
+	blob, err := SealTo(peer.IKX, aad, inner)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -111,23 +138,39 @@ func DecryptFrom(self *Identity, sessions map[string]*Session, blob []byte) (*Ch
 	key := hexKey(msg.senderIK)
 	sess := sessions[key]
 
-	if msg.prekey {
-		if sess == nil {
-			sk, err := x3dhResponderSecret(self.IKX, self.SPK, msg.senderIK, msg.eka)
+	newBob := func() (*Session, error) {
+		sk, err := x3dhResponderSecret(self.IKX, self.SPK, msg.senderIK, msg.eka)
+		if err != nil {
+			return nil, err
+		}
+		var peerMB [16]byte
+		return InitBob(sk, self.SPK, msg.senderIK, self.IKX.PublicKey().Bytes(), peerMB), nil
+	}
+
+	var pt []byte
+	if sess != nil {
+		pt, err = sess.Decrypt(msg.header, msg.ciphertext)
+		if err != nil && msg.prekey {
+			sess, err = newBob()
 			if err != nil {
 				return nil, nil, nil, err
 			}
-			var peerMB [16]byte
-			sess = InitBob(sk, self.SPK, msg.senderIK, self.IKX.PublicKey().Bytes(), peerMB)
+			pt, err = sess.Decrypt(msg.header, msg.ciphertext)
 		}
-	}
-	if sess == nil {
+		if err != nil {
+			return nil, nil, nil, err
+		}
+	} else if msg.prekey {
+		sess, err = newBob()
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		pt, err = sess.Decrypt(msg.header, msg.ciphertext)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+	} else {
 		return nil, nil, nil, fmt.Errorf("no session for sender and not a prekey message")
-	}
-
-	pt, err := sess.Decrypt(msg.header, msg.ciphertext)
-	if err != nil {
-		return nil, nil, nil, err
 	}
 	var payload ChatPayload
 	if err := json.Unmarshal(pt, &payload); err != nil {

@@ -4,7 +4,6 @@ struct ThreadView: View {
     @Environment(AppModel.self) private var model
     let conversation: Conversation
     @State private var draft = ""
-    @State private var tick = 0
 
     var contact: Contact? { model.contact(for: conversation) }
     var messages: [LocalMessage] { model.messages(for: conversation) }
@@ -35,9 +34,8 @@ struct ThreadView: View {
         .faradayScreen()
         .navigationTitle(contact?.displayName ?? "對話")
         .navigationBarTitleDisplayMode(.inline)
-        .onReceive(Timer.publish(every: 1.5, on: .main, in: .common).autoconnect()) { _ in
-            tick += 1
-        }
+        .onAppear { model.openThread(conversation) }
+        .onDisappear { model.closeThread(conversation) }
     }
 
     private func bubble(_ msg: LocalMessage) -> some View {
@@ -49,12 +47,36 @@ struct ThreadView: View {
                     .background(msg.outgoing ? FaradayTheme.brass : FaradayTheme.elevated)
                     .foregroundStyle(msg.outgoing ? FaradayTheme.bg : FaradayTheme.text)
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                Text(statusLine(msg))
-                    .font(.caption2)
-                    .foregroundStyle(FaradayTheme.muted)
+                if msg.id == model.readWatermarkID(for: conversation) {
+                    readChip
+                } else {
+                    Text(statusLine(msg))
+                        .font(.caption2)
+                        .foregroundStyle(FaradayTheme.muted)
+                }
             }
             if !msg.outgoing { Spacer(minLength: 48) }
         }
+    }
+
+    /// Brass watermark on the last outgoing message the peer has opened — not a grey per-bubble 已讀.
+    private var readChip: some View {
+        HStack(spacing: 3) {
+            Image(systemName: "checkmark")
+            Image(systemName: "checkmark")
+                .padding(.leading, -6)
+            Text("已讀")
+        }
+        .font(.caption2.weight(.semibold))
+        .foregroundStyle(FaradayTheme.brass)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(FaradayTheme.brass.opacity(0.14))
+        .overlay(
+            Capsule().stroke(FaradayTheme.brass.opacity(0.5), lineWidth: 1)
+        )
+        .clipShape(Capsule())
+        .accessibilityLabel("對方已讀")
     }
 
     private func statusLine(_ msg: LocalMessage) -> String {
@@ -63,6 +85,7 @@ struct ThreadView: View {
         case .sent: return "已封裝並送出"
         case .failed: return "無法連上中繼站"
         case .received: return msg.sentAt.formatted(date: .omitted, time: .shortened)
+        case .read: return msg.sentAt.formatted(date: .omitted, time: .shortened)
         }
     }
 

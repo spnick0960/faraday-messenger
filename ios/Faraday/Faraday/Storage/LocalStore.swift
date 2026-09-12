@@ -41,6 +41,11 @@ final class LocalStore {
         write(session, to: "session-\(identityHex).json")
     }
 
+    func deleteSession(for identityHex: String) {
+        let url = dir.appendingPathComponent("session-\(identityHex).json")
+        try? FileManager.default.removeItem(at: url)
+    }
+
     func wipe() {
         try? FileManager.default.removeItem(at: dir)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
