@@ -87,19 +87,25 @@ enum DeviceCrypto {
         let inner = try SealedEnvelope.open(recipientIK: id.ikx, aad: aad, blob: blob)
         let msg = try decodeInner(inner)
         let key = msg.senderIK.hex
-        var sess = sessions[key]
-        if msg.prekey, sess == nil {
-            let sk = try X3DH.responderSecret(ikb: id.ikx, spkb: id.spk, ika: msg.senderIK, eka: msg.eka)
-            sess = RatchetSession.bob(
-                sk: sk,
-                bobSPK: id.spk,
-                aliceIK: msg.senderIK,
-                bobIK: id.ikx.publicKey.rawRepresentation,
-                aliceMB: Data(count: 16)
-            )
+        var session = sessions[key]
+        var pt: Data
+        if let existing = session {
+            do {
+                pt = try existing.decrypt(header: msg.header, ciphertext: msg.ciphertext)
+            } catch {
+                // Stale ratchet after reinstall / desync: accept a new X3DH prekey
+                // from the same sender without deleting the contact.
+                guard msg.prekey else { throw FaradayCryptoError.session }
+                session = try bobSession(self: id, senderIK: msg.senderIK, eka: msg.eka)
+                pt = try session!.decrypt(header: msg.header, ciphertext: msg.ciphertext)
+            }
+        } else if msg.prekey {
+            session = try bobSession(self: id, senderIK: msg.senderIK, eka: msg.eka)
+            pt = try session!.decrypt(header: msg.header, ciphertext: msg.ciphertext)
+        } else {
+            throw FaradayCryptoError.session
         }
-        guard let session = sess else { throw FaradayCryptoError.session }
-        let pt = try session.decrypt(header: msg.header, ciphertext: msg.ciphertext)
+        guard let session else { throw FaradayCryptoError.session }
         let payload = try JSONDecoder().decode(ChatPayload.self, from: pt)
         var peer: PublicBundle?
         if let card = payload.card, let mb = Data.fromHex(card.mb) {
@@ -119,6 +125,30 @@ enum DeviceCrypto {
             peer = bundle
         }
         return (payload, peer, session)
+    }
+
+    /// Sender identity from the sealed inner header — available even when the ratchet cannot open.
+    static func peekSenderIK(self id: FaradayIdentity, blob: Data) -> String? {
+        var aad = Data(FaradayKDF.infoSeal.utf8)
+        aad.append(id.mailbox)
+        guard let inner = try? SealedEnvelope.open(recipientIK: id.ikx, aad: aad, blob: blob),
+              let msg = try? decodeInner(inner) else { return nil }
+        return msg.senderIK.hex
+    }
+
+    private static func bobSession(
+        self id: FaradayIdentity,
+        senderIK: Data,
+        eka: Data
+    ) throws -> RatchetSession {
+        let sk = try X3DH.responderSecret(ikb: id.ikx, spkb: id.spk, ika: senderIK, eka: eka)
+        return RatchetSession.bob(
+            sk: sk,
+            bobSPK: id.spk,
+            aliceIK: senderIK,
+            bobIK: id.ikx.publicKey.rawRepresentation,
+            aliceMB: Data(count: 16)
+        )
     }
 
     private static func encodeInner(

@@ -185,6 +185,50 @@ func TestReadReceiptRoundTrip(t *testing.T) {
 	}
 }
 
+func TestSessionHealAfterStaleRatchet(t *testing.T) {
+	alice, _ := GenerateIdentity("Alice")
+	bob, _ := GenerateIdentity("Bob")
+	blob, _, _, err := EncryptTo(alice, bob.PublicBundle(), nil, "first")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, peer, staleB, err := DecryptFrom(bob, map[string]*Session{}, blob)
+	if err != nil || got.Body != "first" || peer == nil {
+		t.Fatalf("%v %+v", err, got)
+	}
+
+	// Alice drops her ratchet (reinstall) and starts a new X3DH using Bob's stored bundle.
+	heal, _, p2, err := EncryptTo(alice, bob.PublicBundle(), nil, "healed")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p2.Card == nil {
+		t.Fatal("heal message must be a prekey with card")
+	}
+	if bytes.Contains(heal, []byte("healed")) {
+		t.Fatal("plaintext leaked into heal blob")
+	}
+
+	// Bob still has the stale session. A new prekey must replace it.
+	staleMap := map[string]*Session{hexKey(alice.IKX.PublicKey().Bytes()): staleB}
+	got, _, sessB, err := DecryptFrom(bob, staleMap, heal)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Body != "healed" {
+		t.Fatalf("got %q", got.Body)
+	}
+
+	// Reply path works on the new session without re-adding Alice.
+	reply, _, _, err := EncryptTo(bob, alice.PublicBundle(), sessB, "ack-heal")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(reply, []byte("ack-heal")) {
+		t.Fatal("reply plaintext leaked")
+	}
+}
+
 func TestSealHidesSender(t *testing.T) {
 	alice, _ := GenerateIdentity("Alice")
 	bob, _ := GenerateIdentity("Bob")

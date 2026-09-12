@@ -29,6 +29,8 @@ final class AppModel {
     private let notificationDelegate = FaradayNotificationDelegate()
     /// Last `upto` we sealed for a conversation, to avoid dropping the same receipt twice in a row.
     private var lastReadReceipt: [String: (upto: String, at: Date)] = [:]
+    /// Peers we already told the user we reset, so a poison inbox does not toast every poll.
+    private var sessionResetAlerted = Set<String>()
 
     init() {
         let saved = UserDefaults.standard.string(forKey: "relayURL") ?? "http://127.0.0.1:43147"
@@ -296,6 +298,7 @@ final class AppModel {
         openConversationID = nil
         showNotificationRationale = false
         lastReadReceipt = [:]
+        sessionResetAlerted = []
     }
 
     func readWatermarkID(for conversation: Conversation) -> String? {
@@ -358,13 +361,16 @@ final class AppModel {
             return
         }
         seenEnvelopeIDs.insert(envelope.id)
-        guard let blob = Data(base64Encoded: envelope.blob) else { return }
+        guard let blob = Data(base64Encoded: envelope.blob) else {
+            try? await relay.ack(mailbox: id.mailboxHex, token: id.authHex, ids: [envelope.id])
+            return
+        }
         do {
             let result = try DeviceCrypto.decrypt(self: id, sessions: sessions, blob: blob)
             let peerBundle = result.peer ?? inferredBundle(from: result.session)
             guard let peerBundle else {
-                lastError = AppError(message: "已解密來自未知寄件者的訊息，仍留在中繼站。")
-                seenEnvelopeIDs.remove(envelope.id)
+                try? await relay.ack(mailbox: id.mailboxHex, token: id.authHex, ids: [envelope.id])
+                lastError = AppError(message: "已解密來自未知寄件者的訊息。封裝已從中繼站刪除。")
                 return
             }
             let contact = upsert(bundle: peerBundle)
@@ -402,9 +408,20 @@ final class AppModel {
             // Successful delivery: persist locally first, then delete on the relay.
             try? await relay.ack(mailbox: id.mailboxHex, token: id.authHex, ids: [envelope.id])
         } catch {
-            seenEnvelopeIDs.remove(envelope.id)
-            lastError = AppError(message: "無法解密封裝。已留在中繼站以便重試。")
+            // Keep seen + ack so the 1.5s poll cannot replay a poison blob.
+            try? await relay.ack(mailbox: id.mailboxHex, token: id.authHex, ids: [envelope.id])
+            if let sender = DeviceCrypto.peekSenderIK(self: id, blob: blob) {
+                resetSession(for: sender)
+            }
         }
+    }
+
+    private func resetSession(for peerHex: String) {
+        sessions.removeValue(forKey: peerHex)
+        store?.deleteSession(for: peerHex)
+        lastReadReceipt.removeValue(forKey: peerHex)
+        guard sessionResetAlerted.insert(peerHex).inserted else { return }
+        lastError = AppError(message: "會話已重設，請再傳一則訊息")
     }
 
     private func inferredBundle(from session: RatchetSession) -> PublicBundle? {

@@ -152,7 +152,7 @@ Simulator QR scanning is not available; paste the invite. A real device can scan
 ## Known limitations (intentionally documented)
 
 - **No APNs / killed-app push.** Local banners work while Faraday can still poll or hold a WebSocket. See the APNs note above. A future silent ping would still leak “this device got mail at T” to Apple.
-- **Restore does not bring back history.** The phrase restores keys and mailbox. Ratchet sessions and local messages stay on the old device. Previous contacts may need to invite you again.
+- **Restore does not bring back history.** The phrase restores keys and mailbox. Ratchet sessions and local messages stay on the old device. If this device still has the contact’s invite bundle, send one new message to start a fresh X3DH — no second paste. Undecryptable leftover blobs are acked and dropped.
 - **No post-quantum.** Classic X3DH, not PQXDH.
 - **Metadata remains.** IPs, times, padded sizes, mailbox IDs. Sealed sender hides *who* wrote to a mailbox, not *that* the mailbox received mail.
 - **Invite is a capability.** Treat it like a secret.

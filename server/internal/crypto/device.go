@@ -138,23 +138,39 @@ func DecryptFrom(self *Identity, sessions map[string]*Session, blob []byte) (*Ch
 	key := hexKey(msg.senderIK)
 	sess := sessions[key]
 
-	if msg.prekey {
-		if sess == nil {
-			sk, err := x3dhResponderSecret(self.IKX, self.SPK, msg.senderIK, msg.eka)
+	newBob := func() (*Session, error) {
+		sk, err := x3dhResponderSecret(self.IKX, self.SPK, msg.senderIK, msg.eka)
+		if err != nil {
+			return nil, err
+		}
+		var peerMB [16]byte
+		return InitBob(sk, self.SPK, msg.senderIK, self.IKX.PublicKey().Bytes(), peerMB), nil
+	}
+
+	var pt []byte
+	if sess != nil {
+		pt, err = sess.Decrypt(msg.header, msg.ciphertext)
+		if err != nil && msg.prekey {
+			sess, err = newBob()
 			if err != nil {
 				return nil, nil, nil, err
 			}
-			var peerMB [16]byte
-			sess = InitBob(sk, self.SPK, msg.senderIK, self.IKX.PublicKey().Bytes(), peerMB)
+			pt, err = sess.Decrypt(msg.header, msg.ciphertext)
 		}
-	}
-	if sess == nil {
+		if err != nil {
+			return nil, nil, nil, err
+		}
+	} else if msg.prekey {
+		sess, err = newBob()
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		pt, err = sess.Decrypt(msg.header, msg.ciphertext)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+	} else {
 		return nil, nil, nil, fmt.Errorf("no session for sender and not a prekey message")
-	}
-
-	pt, err := sess.Decrypt(msg.header, msg.ciphertext)
-	if err != nil {
-		return nil, nil, nil, err
 	}
 	var payload ChatPayload
 	if err := json.Unmarshal(pt, &payload); err != nil {
