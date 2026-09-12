@@ -1,6 +1,11 @@
 import CryptoKit
 import Foundation
 
+enum FaradayPayloadType {
+    static let txt = "txt"
+    static let read = "read"
+}
+
 struct ChatPayload: Codable, Equatable {
     var v: Int
     var t: String
@@ -8,6 +13,8 @@ struct ChatPayload: Codable, Equatable {
     var ts: Int64
     var body: String
     var card: ContactCard?
+    /// Last peer message id the sender has displayed. Set when `t == "read"`.
+    var upto: String?
 }
 
 struct ContactCard: Codable, Equatable {
@@ -24,9 +31,14 @@ enum DeviceCrypto {
         self id: FaradayIdentity,
         peer: PublicBundle,
         session: RatchetSession?,
-        body: String
+        body: String,
+        kind: String = FaradayPayloadType.txt,
+        upto: String? = nil
     ) throws -> (blob: Data, session: RatchetSession, payload: ChatPayload) {
         try peer.verify()
+        if kind == FaradayPayloadType.read, session == nil {
+            throw FaradayCryptoError.session
+        }
         var sess = session
         var prekey = false
         if sess == nil {
@@ -48,11 +60,12 @@ enum DeviceCrypto {
         _ = idBytes.withUnsafeMutableBytes { SecRandomCopyBytes(kSecRandomDefault, 16, $0.baseAddress!) }
         var payload = ChatPayload(
             v: 1,
-            t: "txt",
+            t: kind,
             id: idBytes.hex,
             ts: Int64(Date().timeIntervalSince1970),
             body: body,
-            card: prekey ? id.card() : nil
+            card: prekey ? id.card() : nil,
+            upto: upto
         )
         let pt = try JSONEncoder().encode(payload)
         let enc = try session.encrypt(pt)

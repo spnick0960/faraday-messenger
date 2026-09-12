@@ -148,6 +148,43 @@ func TestDoubleRatchetConversation(t *testing.T) {
 	}
 }
 
+func TestReadReceiptRoundTrip(t *testing.T) {
+	alice, _ := GenerateIdentity("Alice")
+	bob, _ := GenerateIdentity("Bob")
+	blob, sessA, txt, err := EncryptTo(alice, bob.PublicBundle(), nil, "please read me")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, _, sessB, err := DecryptFrom(bob, map[string]*Session{}, blob)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.T != "txt" || got.ID != txt.ID {
+		t.Fatalf("txt %+v", got)
+	}
+	receiptBlob, _, rec, err := EncryptReadReceipt(bob, alice.PublicBundle(), sessB, txt.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rec.T != "read" || rec.Upto != txt.ID || rec.Body != "" {
+		t.Fatalf("receipt %+v", rec)
+	}
+	if bytes.Contains(receiptBlob, []byte(txt.ID)) || bytes.Contains(receiptBlob, []byte("read")) || bytes.Contains(receiptBlob, []byte("please read me")) {
+		t.Fatal("read receipt leaked into sealed blob")
+	}
+	sessionsA := map[string]*Session{hexKey(bob.IKX.PublicKey().Bytes()): sessA}
+	got, _, _, err = DecryptFrom(alice, sessionsA, receiptBlob)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.T != "read" || got.Upto != txt.ID {
+		t.Fatalf("decrypted receipt %+v", got)
+	}
+	if _, _, _, err := EncryptReadReceipt(alice, bob.PublicBundle(), nil, txt.ID); err == nil {
+		t.Fatal("receipt without session should fail")
+	}
+}
+
 func TestSealHidesSender(t *testing.T) {
 	alice, _ := GenerateIdentity("Alice")
 	bob, _ := GenerateIdentity("Bob")

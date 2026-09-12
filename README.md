@@ -158,6 +158,7 @@ Simulator QR scanning is not available; paste the invite. A real device can scan
 - **Invite is a capability.** Treat it like a secret.
 - **Unaudited implementation** of the Signal specs. Do not use this build for high-risk threat models without review.
 - **No attachments.** Text only.
+- **1:1 read receipts only.** Opening a thread seals a `t: "read"` payload (`upto` = last peer message id). Group receipts are a follow-up. The relay sees another opaque blob.
 - **Background iOS networking is unreliable** without push. If the app is suspended, a sealed blob waits in RAM for up to 48 hours. After that it is gone, even if the recipient later comes online.
 
 ## Privacy defaults

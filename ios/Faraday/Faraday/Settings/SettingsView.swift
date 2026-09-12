@@ -42,6 +42,14 @@ struct SettingsView: View {
             }
 
             Section {
+                Text("打開一對一對話時，Faraday 會再封裝一筆已讀回條給對方。中繼站只看得到另一個密文。群組已讀尚未實作。")
+                    .font(.footnote)
+                    .foregroundStyle(FaradayTheme.muted)
+            } header: {
+                Text("已讀回條")
+            }
+
+            Section {
                 Text("本機通知只在這台裝置上顯示。標題是你已儲存的聯絡人名稱，內容固定為「你有一則新訊息」，不會把訊息本文交給 Apple 或中繼站。App 被系統完全殺掉之後就收不到通知——那需要 APNs，目前尚未接上。")
                     .font(.footnote)
                     .foregroundStyle(FaradayTheme.muted)

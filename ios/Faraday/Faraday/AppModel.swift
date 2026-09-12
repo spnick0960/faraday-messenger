@@ -27,6 +27,8 @@ final class AppModel {
     private var openConversationID: String?
     private var isSceneActive = true
     private let notificationDelegate = FaradayNotificationDelegate()
+    /// Last `upto` we sealed for a conversation, to avoid dropping the same receipt twice in a row.
+    private var lastReadReceipt: [String: (upto: String, at: Date)] = [:]
 
     init() {
         let saved = UserDefaults.standard.string(forKey: "relayURL") ?? "http://127.0.0.1:43147"
@@ -141,12 +143,14 @@ final class AppModel {
         isSceneActive = active
         if active, let id = openConversationID {
             clearUnread(conversationID: id)
+            Task { await sendReadReceipt(for: id) }
         }
     }
 
     func openThread(_ conversation: Conversation) {
         openConversationID = conversation.id
         clearUnread(conversationID: conversation.id)
+        Task { await sendReadReceipt(for: conversation.id) }
     }
 
     func closeThread(_ conversation: Conversation) {
@@ -256,7 +260,11 @@ final class AppModel {
             sessions[contact.identityHex] = result.session
             persistSession(result.session, key: contact.identityHex)
             try await relay.drop(to: contact.mailboxHex, blob: result.blob)
-            update(messageID: local.id, conversationID: conversation.id) { $0.status = .sent }
+            // Local id must match the sealed payload id so a peer read receipt can find it.
+            update(messageID: local.id, conversationID: conversation.id) {
+                $0.id = result.payload.id
+                $0.status = .sent
+            }
         } catch {
             update(messageID: local.id, conversationID: conversation.id) { $0.status = .failed }
             lastError = AppError(message: error.localizedDescription)
@@ -287,6 +295,59 @@ final class AppModel {
         pendingOpenConversationID = nil
         openConversationID = nil
         showNotificationRationale = false
+        lastReadReceipt = [:]
+    }
+
+    func readWatermarkID(for conversation: Conversation) -> String? {
+        messages(for: conversation).last(where: { $0.outgoing && $0.status == .read })?.id
+    }
+
+    private func sendReadReceipt(for conversationID: String) async {
+        guard let id = identity else { return }
+        guard let contact = contacts.first(where: { $0.identityHex == conversationID }) else { return }
+        guard sessions[contact.identityHex] != nil else { return }
+        let incoming = (store?.messages(in: conversationID) ?? []).filter { !$0.outgoing }
+        guard let last = incoming.last else { return }
+        if let prev = lastReadReceipt[conversationID],
+           prev.upto == last.id,
+           Date().timeIntervalSince(prev.at) < 20 {
+            return
+        }
+        do {
+            let existing = sessions[contact.identityHex]
+            let result = try DeviceCrypto.encrypt(
+                self: id,
+                peer: contact.bundle.bundle(),
+                session: existing,
+                body: "",
+                kind: FaradayPayloadType.read,
+                upto: last.id
+            )
+            sessions[contact.identityHex] = result.session
+            persistSession(result.session, key: contact.identityHex)
+            try await relay.drop(to: contact.mailboxHex, blob: result.blob)
+            lastReadReceipt[conversationID] = (upto: last.id, at: Date())
+        } catch {
+            // Receipts are best-effort; a later open/poll will try again.
+        }
+    }
+
+    private func applyReadReceipt(contactID: String, upto: String) {
+        guard !upto.isEmpty else { return }
+        var list = store?.messages(in: contactID) ?? []
+        guard let end = list.lastIndex(where: { $0.outgoing && $0.id == upto }) else { return }
+        var changed = false
+        for i in list.indices where i <= end {
+            guard list[i].outgoing, list[i].status == .sent || list[i].status == .read else { continue }
+            if list[i].status != .read {
+                list[i].status = .read
+                changed = true
+            }
+        }
+        if changed {
+            store?.save(messages: list, in: contactID)
+            objectNotify()
+        }
     }
 
     private func handle(envelope: InboxEnvelope) async {
@@ -309,6 +370,16 @@ final class AppModel {
             let contact = upsert(bundle: peerBundle)
             sessions[contact.identityHex] = result.session
             persistSession(result.session, key: contact.identityHex)
+            if result.payload.t == FaradayPayloadType.read {
+                applyReadReceipt(contactID: contact.identityHex, upto: result.payload.upto ?? "")
+                try? await relay.ack(mailbox: id.mailboxHex, token: id.authHex, ids: [envelope.id])
+                return
+            }
+            if result.payload.t != FaradayPayloadType.txt {
+                // Unknown control payload — ack so it cannot jam the mailbox.
+                try? await relay.ack(mailbox: id.mailboxHex, token: id.authHex, ids: [envelope.id])
+                return
+            }
             let conversation = upsertConversation(contactID: contact.identityHex, preview: result.payload.body)
             let msg = LocalMessage(
                 id: result.payload.id,
@@ -325,6 +396,8 @@ final class AppModel {
                     conversationID: conversation.id,
                     senderName: contact.displayName
                 )
+            } else if wasNew {
+                Task { await sendReadReceipt(for: conversation.id) }
             }
             // Successful delivery: persist locally first, then delete on the relay.
             try? await relay.ack(mailbox: id.mailboxHex, token: id.authHex, ids: [envelope.id])

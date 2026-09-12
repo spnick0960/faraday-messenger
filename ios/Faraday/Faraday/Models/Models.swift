@@ -60,7 +60,7 @@ struct LocalMessage: Identifiable, Codable, Hashable {
     var sentAt: Date
     var status: Status
 
-    enum Status: String, Codable { case sending, sent, failed, received }
+    enum Status: String, Codable { case sending, sent, failed, received, read }
 }
 
 struct AppError: Identifiable {
