@@ -13,10 +13,14 @@ final class AppModel {
     var lastError: AppError?
     var pendingPhrase: String?
 
+    /// Bumped whenever file-backed messages change so thread views re-render immediately.
+    private(set) var messageEpoch = 0
+
     private var store: LocalStore?
     private var relay: RelayClient
     private var sessions: [String: RatchetSession] = [:]
     private var seenEnvelopeIDs = Set<String>()
+    private var inboxPollTask: Task<Void, Never>?
 
     init() {
         let saved = UserDefaults.standard.string(forKey: "relayURL") ?? "http://127.0.0.1:43147"
@@ -87,23 +91,63 @@ final class AppModel {
                 }
             }
             isOnline = true
-            await refreshInbox()
+            startInboxPolling()
+            await refreshInbox(reportError: false)
         } catch {
             isOnline = false
             lastError = AppError(message: error.localizedDescription)
+            // HTTP register failed — still poll so a later relay recovery is picked up.
+            startInboxPolling()
         }
     }
 
     func refreshInbox() async {
+        await refreshInbox(reportError: true)
+    }
+
+    private func refreshInbox(reportError: Bool) async {
         guard let id = identity else { return }
         do {
             let items = try await relay.inbox(mailbox: id.mailboxHex, token: id.authHex)
+            isOnline = true
             for item in items {
                 await handle(envelope: item)
             }
         } catch {
-            lastError = AppError(message: error.localizedDescription)
+            isOnline = false
+            if reportError {
+                lastError = AppError(message: error.localizedDescription)
+            }
+            // Register is idempotent. Retry so a relay that was down at launch
+            // can start accepting inbox fetches without a manual refresh.
+            try? await relay.register(mailbox: id.mailboxHex, token: id.authHex)
         }
+    }
+
+    private func startInboxPolling() {
+        inboxPollTask?.cancel()
+        inboxPollTask = Task { [weak self] in
+            await self?.inboxPollLoop()
+        }
+    }
+
+    private func inboxPollLoop() async {
+        // HTTP inbox is the reliable path when the Cloudflare WS tunnel drops.
+        // Keep this under a couple of seconds so pending envelopes do not sit forever.
+        while !Task.isCancelled {
+            do {
+                try await Task.sleep(for: .seconds(1.5))
+            } catch {
+                return
+            }
+            guard !Task.isCancelled else { return }
+            await refreshInbox(reportError: false)
+        }
+    }
+
+    private func stopInboxPolling() {
+        inboxPollTask?.cancel()
+        inboxPollTask = nil
     }
 
     func addContact(fromInvite string: String) throws -> Contact {
@@ -131,6 +175,8 @@ final class AppModel {
             status: .sending
         )
         append(local)
+        // Yield so SwiftUI can paint the optimistic bubble before crypto blocks the main actor.
+        await Task.yield()
         do {
             let existing = sessions[contact.identityHex]
             let result = try DeviceCrypto.encrypt(
@@ -150,7 +196,8 @@ final class AppModel {
     }
 
     func messages(for conversation: Conversation) -> [LocalMessage] {
-        store?.messages(in: conversation.id) ?? []
+        _ = messageEpoch
+        return store?.messages(in: conversation.id) ?? []
     }
 
     func contact(for conversation: Conversation) -> Contact? {
@@ -158,6 +205,7 @@ final class AppModel {
     }
 
     func destroyIdentity() async {
+        stopInboxPolling()
         await relay.disconnect()
         try? KeychainStore.wipeIdentity()
         store?.wipe()
@@ -280,7 +328,9 @@ final class AppModel {
     }
 
     private func objectNotify() {
-        // Touch a property so @Observable publishes file-backed message changes.
+        // File-backed messages are not stored on an @Observable property.
+        // Bump an epoch so thread views that call messages(for:) re-render immediately.
+        messageEpoch += 1
         conversations = conversations
     }
 }

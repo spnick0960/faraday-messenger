@@ -15,6 +15,7 @@ struct FaradayApp: App {
 
 struct RootView: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         Group {
@@ -30,6 +31,11 @@ struct RootView: View {
             set: { model.lastError = $0 }
         )) { err in
             Alert(title: Text("發生錯誤"), message: Text(err.message), dismissButton: .default(Text("確定")))
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active, model.hasIdentity {
+                Task { await model.connect() }
+            }
         }
     }
 }

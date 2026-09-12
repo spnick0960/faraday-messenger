@@ -4,7 +4,6 @@ struct ThreadView: View {
     @Environment(AppModel.self) private var model
     let conversation: Conversation
     @State private var draft = ""
-    @State private var tick = 0
 
     var contact: Contact? { model.contact(for: conversation) }
     var messages: [LocalMessage] { model.messages(for: conversation) }
@@ -35,9 +34,6 @@ struct ThreadView: View {
         .faradayScreen()
         .navigationTitle(contact?.displayName ?? "對話")
         .navigationBarTitleDisplayMode(.inline)
-        .onReceive(Timer.publish(every: 1.5, on: .main, in: .common).autoconnect()) { _ in
-            tick += 1
-        }
     }
 
     private func bubble(_ msg: LocalMessage) -> some View {

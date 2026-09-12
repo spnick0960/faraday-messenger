@@ -57,7 +57,7 @@ The on-disk file (`data/relay.json`) stores mailbox capability IDs and token has
 
 ### Push / APNs (not used in this MVP)
 
-This build does not register with Apple Push Notification service. Delivery is WebSocket + inbox fetch while the app is in the foreground.
+This build does not register with Apple Push Notification service. Delivery is WebSocket (reconnects after a drop) plus HTTP inbox polling every ~1.5s while the app is in the foreground.
 
 If push is added later, the only acceptable payload is a silent data-only ping or a generic “New message” with **no** body, sender, mailbox, or ciphertext. Apple would still learn that this device received a notification at time T — that timing metadata is a real tradeoff and is why push is off by default. Preview text in a banner is incompatible with the threat model.
 
